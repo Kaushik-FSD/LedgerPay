@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+
+  postgres:
+    image: postgres:16
+    container_name: ledgerpay-postgres
+    environment:
+      POSTGRES_DB: ledgerpay
+      POSTGRES_USER: ledgerpay_user
+      POSTGRES_PASSWORD: ledgerpay_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - ledgerpay_postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    container_name: ledgerpay-redis
+    ports:
+      - "6379:6379"
+
+volumes:
+  ledgerpay_postgres_data:
