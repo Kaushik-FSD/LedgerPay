@@ -1,0 +1,1185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>PayCore — System Architecture</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500&display=swap');
+
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --surface2: #18181f;
+    --border: #2a2a35;
+    --accent: #00e5a0;
+    --accent2: #4f8cff;
+    --accent3: #ff6b6b;
+    --accent4: #ffd166;
+    --text: #e8e8f0;
+    --muted: #6b6b80;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'Syne', sans-serif;
+    --body: 'Inter', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--body);
+    font-size: 14px;
+    line-height: 1.7;
+  }
+
+  /* ── HEADER ── */
+  header {
+    padding: 60px 80px 40px;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+  header::before {
+    content: '';
+    position: absolute;
+    top: -60px; right: -60px;
+    width: 400px; height: 400px;
+    background: radial-gradient(circle, rgba(0,229,160,0.07) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .badge {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    padding: 3px 10px;
+    border-radius: 2px;
+    margin-bottom: 16px;
+    letter-spacing: 0.1em;
+  }
+  h1 {
+    font-family: var(--sans);
+    font-size: 52px;
+    font-weight: 800;
+    letter-spacing: -1px;
+    line-height: 1.1;
+  }
+  h1 span { color: var(--accent); }
+  .subtitle {
+    margin-top: 12px;
+    color: var(--muted);
+    font-size: 15px;
+    max-width: 600px;
+  }
+  .meta-row {
+    display: flex;
+    gap: 24px;
+    margin-top: 28px;
+    flex-wrap: wrap;
+  }
+  .meta-tag {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    padding: 4px 12px;
+    border-radius: 2px;
+  }
+  .meta-tag strong { color: var(--text); }
+
+  /* ── LAYOUT ── */
+  main {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 60px 80px;
+  }
+
+  /* ── SECTION ── */
+  section { margin-bottom: 72px; }
+  .section-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--accent);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  h2 {
+    font-family: var(--sans);
+    font-size: 26px;
+    font-weight: 700;
+    margin-bottom: 24px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  h3 {
+    font-family: var(--sans);
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 10px;
+    color: var(--text);
+  }
+
+  /* ── CARDS ── */
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 20px 24px;
+    position: relative;
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    border-radius: 6px 6px 0 0;
+  }
+  .card.green::before  { background: var(--accent); }
+  .card.blue::before   { background: var(--accent2); }
+  .card.red::before    { background: var(--accent3); }
+  .card.yellow::before { background: var(--accent4); }
+  .card-title {
+    font-family: var(--sans);
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .card-desc {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+  .tag-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 12px;
+  }
+  .tag {
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 2px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--muted);
+  }
+
+  /* ── FLOW DIAGRAM ── */
+  .flow {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+  .flow-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+    position: relative;
+  }
+  .flow-step:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    left: 19px;
+    top: 42px;
+    bottom: -16px;
+    width: 2px;
+    background: var(--border);
+  }
+  .flow-number {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--surface2);
+    border: 2px solid var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+    flex-shrink: 0;
+    position: relative;
+    z-index: 1;
+  }
+  .flow-content {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px 20px;
+    margin-bottom: 16px;
+    flex: 1;
+  }
+  .flow-content h4 {
+    font-family: var(--sans);
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .flow-content p {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+  .flow-content .note {
+    margin-top: 8px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--accent);
+    background: rgba(0,229,160,0.05);
+    border: 1px solid rgba(0,229,160,0.15);
+    padding: 6px 10px;
+    border-radius: 3px;
+  }
+
+  /* ── TABLE ── */
+  .table-wrap {
+    overflow-x: auto;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  thead {
+    background: var(--surface2);
+  }
+  th {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  td {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--surface2); }
+  .method {
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-weight: 600;
+  }
+  .get    { background: rgba(79,140,255,0.15); color: var(--accent2); border: 1px solid rgba(79,140,255,0.3); }
+  .post   { background: rgba(0,229,160,0.10); color: var(--accent);  border: 1px solid rgba(0,229,160,0.25); }
+  .patch  { background: rgba(255,209,102,0.12); color: var(--accent4); border: 1px solid rgba(255,209,102,0.25); }
+  .delete { background: rgba(255,107,107,0.12); color: var(--accent3); border: 1px solid rgba(255,107,107,0.25); }
+  .endpoint { font-family: var(--mono); font-size: 12px; color: var(--text); }
+
+  /* ── CODE BLOCK ── */
+  pre {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 20px 24px;
+    overflow-x: auto;
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.8;
+    color: #c9d1e8;
+  }
+  .key   { color: var(--accent2); }
+  .val   { color: var(--accent); }
+  .str   { color: #ff9e7a; }
+  .cmt   { color: var(--muted); font-style: italic; }
+
+  /* ── LEDGER DIAGRAM ── */
+  .ledger-demo {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 28px 32px;
+  }
+  .ledger-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 12px;
+    font-family: var(--mono);
+    font-size: 13px;
+  }
+  .ledger-account { width: 200px; color: var(--muted); }
+  .ledger-bar {
+    height: 28px;
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    font-size: 12px;
+    font-weight: 600;
+    min-width: 100px;
+  }
+  .debit  { background: rgba(255,107,107,0.15); color: var(--accent3); border: 1px solid rgba(255,107,107,0.3); }
+  .credit { background: rgba(0,229,160,0.10);  color: var(--accent);  border: 1px solid rgba(0,229,160,0.25); }
+  .ledger-rule {
+    border-top: 1px dashed var(--border);
+    padding-top: 12px;
+    margin-top: 4px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 32px;
+    font-size: 12px;
+  }
+  .ledger-total { color: var(--text); }
+  .ledger-total span { color: var(--accent); font-weight: 600; }
+
+  /* ── SCHEMA BLOCK ── */
+  .schema-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 16px;
+  }
+  .schema-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .schema-header {
+    background: var(--surface2);
+    padding: 10px 16px;
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent2);
+    border-bottom: 1px solid var(--border);
+  }
+  .schema-body {
+    padding: 16px;
+    font-family: var(--mono);
+    font-size: 11px;
+    line-height: 2;
+  }
+  .field-name { color: var(--accent2); }
+  .field-type { color: var(--muted); }
+  .field-note { color: var(--accent4); font-size: 10px; }
+  .pk { color: var(--accent); }
+
+  /* ── CONCEPT PILLS ── */
+  .concept-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 12px;
+  }
+  .concept-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 18px 20px;
+  }
+  .concept-icon {
+    font-size: 22px;
+    margin-bottom: 8px;
+  }
+  .concept-title {
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .concept-desc {
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  /* ── STACK SECTION ── */
+  .stack-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+  }
+  .stack-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .stack-role {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .stack-tech {
+    font-family: var(--sans);
+    font-size: 15px;
+    font-weight: 700;
+  }
+  .stack-why {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 32px 80px;
+    text-align: center;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+
+  @media (max-width: 768px) {
+    header, main, footer { padding-left: 24px; padding-right: 24px; }
+    h1 { font-size: 32px; }
+    .two-col, .three-col { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── HEADER ── -->
+<header>
+  <div class="badge">PORTFOLIO PROJECT · SYSTEM DESIGN</div>
+  <h1>Pay<span>Core</span></h1>
+  <p class="subtitle">A distributed payment processing platform demonstrating fintech backend architecture — wallet transfers, double-entry ledger, idempotency, atomicity, and settlement simulation.</p>
+  <div class="meta-row">
+    <span class="meta-tag"><strong>Java</strong> · Spring Boot</span>
+    <span class="meta-tag"><strong>PostgreSQL</strong> · Primary DB</span>
+    <span class="meta-tag"><strong>Redis</strong> · Idempotency Cache</span>
+    <span class="meta-tag"><strong>Docker</strong> · Containerized</span>
+    <span class="meta-tag"><strong>REST</strong> · API Style</span>
+    <span class="meta-tag"><strong>Maven</strong> · Build</span>
+  </div>
+</header>
+
+<main>
+
+  <!-- ── 1. OVERVIEW ── -->
+  <section>
+    <div class="section-label">01 · Overview</div>
+    <h2>What is PayCore?</h2>
+    <p style="color:var(--muted); margin-bottom: 24px; max-width: 800px;">
+      PayCore simulates how money moves inside a payment company. It is NOT a real payment gateway.
+      The focus is on <strong style="color:var(--text)">correctness</strong> — money cannot be created or destroyed,
+      every movement is recorded in a ledger, every API is idempotent, and every wallet operation is atomic.
+    </p>
+    <div class="concept-grid">
+      <div class="concept-card">
+        <div class="concept-icon">🏦</div>
+        <div class="concept-title">Wallet-to-Wallet Transfer</div>
+        <div class="concept-desc">Single payment mode. User initiates transfer. Money moves from source wallet to destination wallet. Simple, clean, focused.</div>
+      </div>
+      <div class="concept-card">
+        <div class="concept-icon">📒</div>
+        <div class="concept-title">Double-Entry Ledger</div>
+        <div class="concept-desc">Every transfer creates two ledger entries. Every debit has a matching credit. Total debits always equal total credits.</div>
+      </div>
+      <div class="concept-card">
+        <div class="concept-icon">🔑</div>
+        <div class="concept-title">Idempotency</div>
+        <div class="concept-desc">Client sends an idempotency key. If the same request is retried, the original result is returned. Money is never moved twice.</div>
+      </div>
+      <div class="concept-card">
+        <div class="concept-icon">⚛️</div>
+        <div class="concept-title">Atomicity</div>
+        <div class="concept-desc">All DB writes for a payment (debit + credit + ledger + payment record) happen in a single PostgreSQL transaction. All or nothing.</div>
+      </div>
+      <div class="concept-card">
+        <div class="concept-icon">🔁</div>
+        <div class="concept-title">Refunds</div>
+        <div class="concept-desc">Refund reverses the original ledger entries. Merchant wallet is debited, user wallet is credited. New ledger entries are created.</div>
+      </div>
+      <div class="concept-card">
+        <div class="concept-icon">🕐</div>
+        <div class="concept-title">Settlement Simulation</div>
+        <div class="concept-desc">Funds are held by platform on payment. A scheduler releases them to the merchant on T+1 or T+2 configurable delay.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 2. TECH STACK ── -->
+  <section>
+    <div class="section-label">02 · Technology Stack</div>
+    <h2>What & Why</h2>
+    <div class="stack-grid">
+      <div class="stack-item">
+        <div class="stack-role">Backend Framework</div>
+        <div class="stack-tech" style="color:var(--accent2)">Spring Boot</div>
+        <div class="stack-why">Industry standard for Java backend. Dependency injection, transactional support, JPA integration.</div>
+      </div>
+      <div class="stack-item">
+        <div class="stack-role">Primary Database</div>
+        <div class="stack-tech" style="color:var(--accent)">PostgreSQL</div>
+        <div class="stack-why">ACID transactions, row-level locking, native sequences. The correct choice for financial data.</div>
+      </div>
+      <div class="stack-item">
+        <div class="stack-role">Cache / Idempotency</div>
+        <div class="stack-tech" style="color:var(--accent3)">Redis</div>
+        <div class="stack-why">Store idempotency key → result mappings with TTL. Fast lookup before any DB write happens.</div>
+      </div>
+      <div class="stack-item">
+        <div class="stack-role">Containerization</div>
+        <div class="stack-tech" style="color:var(--accent4)">Docker</div>
+        <div class="stack-why">docker-compose runs PostgreSQL + Redis + app together. One command to spin up the whole system.</div>
+      </div>
+      <div class="stack-item">
+        <div class="stack-role">ORM</div>
+        <div class="stack-tech" style="color:var(--accent2)">Spring Data JPA</div>
+        <div class="stack-why">Hibernate under the hood. Pessimistic locking via @Lock annotation for wallet updates.</div>
+      </div>
+      <div class="stack-item">
+        <div class="stack-role">Build Tool</div>
+        <div class="stack-tech" style="color:var(--muted)">Maven</div>
+        <div class="stack-why">Standard Java build tool. Dependency management, plugin ecosystem.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 3. SERVICES ── -->
+  <section>
+    <div class="section-label">03 · Service Boundaries</div>
+    <h2>Modules (Single Deployable, Logical Separation)</h2>
+    <p style="color:var(--muted); margin-bottom: 20px; font-size: 13px;">
+      This is a <strong style="color:var(--text)">modular monolith</strong> — one Spring Boot app with clear package-level separation.
+      Not microservices. This is intentional: simpler to run, easier to demonstrate, and the boundaries are still clean.
+    </p>
+    <div class="card-grid">
+      <div class="card green">
+        <div class="card-title">User Module</div>
+        <div class="card-desc">Register users, fetch user info, manage user identity. Each user owns exactly one wallet.</div>
+        <div class="tag-list">
+          <span class="tag">POST /users</span>
+          <span class="tag">GET /users/:id</span>
+        </div>
+      </div>
+      <div class="card blue">
+        <div class="card-title">Merchant Module</div>
+        <div class="card-desc">Merchant onboarding, activation/deactivation, merchant profile. Each merchant owns exactly one wallet.</div>
+        <div class="tag-list">
+          <span class="tag">POST /merchants</span>
+          <span class="tag">PATCH /merchants/:id/status</span>
+        </div>
+      </div>
+      <div class="card green">
+        <div class="card-title">Wallet Module</div>
+        <div class="card-desc">Manage balances. Credit and debit operations. Balance is the live state; ledger is the source of truth. Supports pessimistic locking.</div>
+        <div class="tag-list">
+          <span class="tag">GET /wallets/:id</span>
+          <span class="tag">GET /wallets/:id/balance</span>
+        </div>
+      </div>
+      <div class="card blue">
+        <div class="card-title">Payment Module</div>
+        <div class="card-desc">Core of the system. Create payments, process them, track status. Handles the entire payment lifecycle including refunds.</div>
+        <div class="tag-list">
+          <span class="tag">POST /payments</span>
+          <span class="tag">GET /payments/:id</span>
+          <span class="tag">POST /payments/:id/refund</span>
+        </div>
+      </div>
+      <div class="card yellow">
+        <div class="card-title">Ledger Module</div>
+        <div class="card-desc">Immutable record of all financial movements. Double-entry accounting. Never updated, only appended. Source of truth for reconciliation.</div>
+        <div class="tag-list">
+          <span class="tag">GET /ledger/:accountId</span>
+          <span class="tag">GET /ledger/reconcile</span>
+        </div>
+      </div>
+      <div class="card red">
+        <div class="card-title">Settlement Module</div>
+        <div class="card-desc">Scheduled job releases held funds to merchants. Configurable T+1 or T+2 settlement mode. Runs as a Spring @Scheduled task.</div>
+        <div class="tag-list">
+          <span class="tag">Scheduled Job</span>
+          <span class="tag">GET /settlements</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 4. PAYMENT FLOW ── -->
+  <section>
+    <div class="section-label">04 · Core Payment Flow</div>
+    <h2>User → System → End (Step by Step)</h2>
+    <div class="flow">
+
+      <div class="flow-step">
+        <div class="flow-number">1</div>
+        <div class="flow-content">
+          <h4>Client Sends Payment Request</h4>
+          <p>User hits <code style="color:var(--accent)">POST /payments</code> with amount, source wallet, destination wallet, and an idempotency key in the header.</p>
+          <div class="note">Header: Idempotency-Key: &lt;uuid&gt;</div>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-number">2</div>
+        <div class="flow-content">
+          <h4>Idempotency Check (Redis)</h4>
+          <p>System looks up the idempotency key in Redis. If found → return cached response immediately. No DB touched. If not found → continue.</p>
+          <div class="note">Redis key: idempotency:{key} → cached PaymentResponse (TTL: 24h)</div>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-number">3</div>
+        <div class="flow-content">
+          <h4>Validation</h4>
+          <p>Validate: source wallet exists, destination wallet exists, amount > 0, source wallet has sufficient balance, merchant is active.</p>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-number">4</div>
+        <div class="flow-content">
+          <h4>Create Payment Record (CREATED)</h4>
+          <p>Insert a payment row with status = CREATED. This is the anchor record. All subsequent steps reference this paymentId.</p>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-number">5</div>
+        <div class="flow-content">
+          <h4>Atomic DB Transaction Begins</h4>
+          <p>A single PostgreSQL transaction now wraps steps 5–8. If anything fails, the entire transaction rolls back. No partial state.</p>
+          <div class="note">@Transactional — Spring manages this. PostgreSQL guarantees ACID.</div>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-number">6</div>
+        <div class="flow-content">
+          <h4>Lock Source Wallet (Pessimistic Lock)</h4>
+          <p>Acquire a row-level lock on the source wallet using SELECT FOR UPDATE. Prevents concurrent payments from the same wallet from racing.</p>
+          <div class="note">@Lock(LockModeType.PESSIMISTIC_WRITE) on wallet query</div>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-number">7</div>
+        <div class="flow-content">
+          <h4>Debit Source Wallet / Credit Destination Wallet</h4>
+          <p>Deduct amount from source wallet balance. Add amount to destination wallet balance. Both writes in the same transaction.</p>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-number">8</div>
+        <div class="flow-content">
+          <h4>Create Ledger Entries (Double-Entry)</h4>
+          <p>Two ledger rows are inserted: one DEBIT for the source account, one CREDIT for the destination account. Same amount. Same transactionId.</p>
+          <div class="note">SUM(debits) == SUM(credits) always. Money cannot be created or destroyed.</div>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-number">9</div>
+        <div class="flow-content">
+          <h4>Update Payment Status (SUCCESS)</h4>
+          <p>Payment record is updated to status = SUCCESS. Timestamp recorded. All within the same transaction.</p>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-number">10</div>
+        <div class="flow-content">
+          <h4>Transaction Commits</h4>
+          <p>PostgreSQL commits the transaction. All five writes (debit wallet, credit wallet, 2 ledger entries, payment status) are durable together.</p>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-number">11</div>
+        <div class="flow-content">
+          <h4>Store Result in Redis</h4>
+          <p>PaymentResponse is stored in Redis under the idempotency key with a 24h TTL. Any retry of the same request gets this cached response.</p>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-number">12</div>
+        <div class="flow-content">
+          <h4>Return Response to Client</h4>
+          <p>HTTP 200 with paymentId, status: SUCCESS, amount, timestamp. Client receives confirmation.</p>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ── 5. REFUND FLOW ── -->
+  <section>
+    <div class="section-label">05 · Refund Flow</div>
+    <h2>Reversing a Payment</h2>
+    <div class="flow">
+      <div class="flow-step">
+        <div class="flow-number">1</div>
+        <div class="flow-content">
+          <h4>Client Requests Refund</h4>
+          <p><code style="color:var(--accent)">POST /payments/:paymentId/refund</code> — only allowed if payment status is SUCCESS.</p>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-number">2</div>
+        <div class="flow-content">
+          <h4>Validate Refund Eligibility</h4>
+          <p>Check payment status is SUCCESS. Check no existing refund for this payment. Check merchant wallet has sufficient balance.</p>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-number">3</div>
+        <div class="flow-content">
+          <h4>Atomic Reversal Transaction</h4>
+          <p>Debit merchant wallet. Credit user wallet. Insert two new ledger entries (reverse direction). Update payment status to REFUNDED. All in one transaction.</p>
+          <div class="note">New ledger entries are created — the originals are never modified. Immutability.</div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-number">4</div>
+        <div class="flow-content">
+          <h4>Return Refund Confirmation</h4>
+          <p>HTTP 200 with refundId, status: REFUNDED, original paymentId.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 6. DOUBLE ENTRY LEDGER ── -->
+  <section>
+    <div class="section-label">06 · Double-Entry Ledger</div>
+    <h2>How Money Moves in the Books</h2>
+    <p style="color:var(--muted); margin-bottom: 20px; font-size:13px;">Example: User pays ₹1,000 to Merchant</p>
+    <div class="ledger-demo">
+      <div style="font-family:var(--mono); font-size:11px; color:var(--muted); margin-bottom:20px; letter-spacing:0.1em;">PAYMENT TRANSACTION · TXN-20240001</div>
+      <div class="ledger-row">
+        <div class="ledger-account">user_wallet_001</div>
+        <div class="ledger-bar debit">DEBIT  ₹1,000</div>
+      </div>
+      <div class="ledger-row">
+        <div class="ledger-account">merchant_wallet_001</div>
+        <div class="ledger-bar credit">CREDIT  ₹1,000</div>
+      </div>
+      <div class="ledger-rule">
+        <span class="ledger-total">Total Debits: <span>₹1,000</span></span>
+        <span class="ledger-total">Total Credits: <span>₹1,000</span></span>
+        <span class="ledger-total" style="color:var(--accent)">✓ BALANCED</span>
+      </div>
+      <div style="border-top:1px dashed var(--border); margin-top:20px; padding-top:20px; font-family:var(--mono); font-size:11px; color:var(--muted)">REFUND TRANSACTION · REF-20240001 (reversal)</div>
+      <div class="ledger-row" style="margin-top:12px;">
+        <div class="ledger-account">merchant_wallet_001</div>
+        <div class="ledger-bar debit">DEBIT  ₹1,000</div>
+      </div>
+      <div class="ledger-row">
+        <div class="ledger-account">user_wallet_001</div>
+        <div class="ledger-bar credit">CREDIT  ₹1,000</div>
+      </div>
+      <div class="ledger-rule">
+        <span class="ledger-total">Total Debits: <span>₹1,000</span></span>
+        <span class="ledger-total">Total Credits: <span>₹1,000</span></span>
+        <span class="ledger-total" style="color:var(--accent)">✓ BALANCED</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 7. DATABASE SCHEMA ── -->
+  <section>
+    <div class="section-label">07 · Database Schema</div>
+    <h2>PostgreSQL Tables</h2>
+    <div class="schema-grid">
+      <div class="schema-box">
+        <div class="schema-header">users</div>
+        <div class="schema-body">
+          <div><span class="field-name pk">user_id</span>  <span class="field-type">UUID PRIMARY KEY</span></div>
+          <div><span class="field-name">name</span>  <span class="field-type">VARCHAR(100) NOT NULL</span></div>
+          <div><span class="field-name">email</span>  <span class="field-type">VARCHAR(255) UNIQUE</span></div>
+          <div><span class="field-name">created_at</span>  <span class="field-type">TIMESTAMPTZ</span></div>
+        </div>
+      </div>
+      <div class="schema-box">
+        <div class="schema-header">merchants</div>
+        <div class="schema-body">
+          <div><span class="field-name pk">merchant_id</span>  <span class="field-type">UUID PRIMARY KEY</span></div>
+          <div><span class="field-name">name</span>  <span class="field-type">VARCHAR(100) NOT NULL</span></div>
+          <div><span class="field-name">status</span>  <span class="field-type">ENUM(ACTIVE, INACTIVE)</span></div>
+          <div><span class="field-name">created_at</span>  <span class="field-type">TIMESTAMPTZ</span></div>
+        </div>
+      </div>
+      <div class="schema-box">
+        <div class="schema-header">wallets</div>
+        <div class="schema-body">
+          <div><span class="field-name pk">wallet_id</span>  <span class="field-type">UUID PRIMARY KEY</span></div>
+          <div><span class="field-name">owner_id</span>  <span class="field-type">UUID NOT NULL</span></div>
+          <div><span class="field-name">owner_type</span>  <span class="field-type">ENUM(USER, MERCHANT)</span></div>
+          <div><span class="field-name">balance</span>  <span class="field-type">DECIMAL(15,2) DEFAULT 0</span></div>
+          <div><span class="field-name">version</span>  <span class="field-type">BIGINT  </span><span class="field-note">← optimistic lock</span></div>
+          <div><span class="field-name">updated_at</span>  <span class="field-type">TIMESTAMPTZ</span></div>
+        </div>
+      </div>
+      <div class="schema-box">
+        <div class="schema-header">payments</div>
+        <div class="schema-body">
+          <div><span class="field-name pk">payment_id</span>  <span class="field-type">UUID PRIMARY KEY</span></div>
+          <div><span class="field-name">idempotency_key</span>  <span class="field-type">VARCHAR UNIQUE</span></div>
+          <div><span class="field-name">source_wallet_id</span>  <span class="field-type">UUID FK → wallets</span></div>
+          <div><span class="field-name">dest_wallet_id</span>  <span class="field-type">UUID FK → wallets</span></div>
+          <div><span class="field-name">amount</span>  <span class="field-type">DECIMAL(15,2)</span></div>
+          <div><span class="field-name">status</span>  <span class="field-type">ENUM(CREATED, PROCESSING,</span></div>
+          <div><span class="field-type" style="padding-left:80px">SUCCESS, FAILED, REFUNDED)</span></div>
+          <div><span class="field-name">created_at</span>  <span class="field-type">TIMESTAMPTZ</span></div>
+          <div><span class="field-name">updated_at</span>  <span class="field-type">TIMESTAMPTZ</span></div>
+        </div>
+      </div>
+      <div class="schema-box">
+        <div class="schema-header">ledger_entries</div>
+        <div class="schema-body">
+          <div><span class="field-name pk">entry_id</span>  <span class="field-type">UUID PRIMARY KEY</span></div>
+          <div><span class="field-name">payment_id</span>  <span class="field-type">UUID FK → payments</span></div>
+          <div><span class="field-name">account_id</span>  <span class="field-type">UUID  </span><span class="field-note">← wallet_id</span></div>
+          <div><span class="field-name">entry_type</span>  <span class="field-type">ENUM(DEBIT, CREDIT)</span></div>
+          <div><span class="field-name">amount</span>  <span class="field-type">DECIMAL(15,2)</span></div>
+          <div><span class="field-name">created_at</span>  <span class="field-type">TIMESTAMPTZ</span></div>
+          <div style="margin-top:8px; font-size:10px; color:var(--accent4)">-- IMMUTABLE. Never updated. Append only.</div>
+        </div>
+      </div>
+      <div class="schema-box">
+        <div class="schema-header">settlements</div>
+        <div class="schema-body">
+          <div><span class="field-name pk">settlement_id</span>  <span class="field-type">UUID PRIMARY KEY</span></div>
+          <div><span class="field-name">payment_id</span>  <span class="field-type">UUID FK → payments</span></div>
+          <div><span class="field-name">merchant_wallet_id</span>  <span class="field-type">UUID</span></div>
+          <div><span class="field-name">amount</span>  <span class="field-type">DECIMAL(15,2)</span></div>
+          <div><span class="field-name">status</span>  <span class="field-type">ENUM(PENDING, SETTLED)</span></div>
+          <div><span class="field-name">settle_at</span>  <span class="field-type">TIMESTAMPTZ  </span><span class="field-note">← T+1/T+2</span></div>
+          <div><span class="field-name">settled_at</span>  <span class="field-type">TIMESTAMPTZ NULLABLE</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 8. API CONTRACTS ── -->
+  <section>
+    <div class="section-label">08 · API Contracts</div>
+    <h2>REST Endpoints</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Method</th>
+            <th>Endpoint</th>
+            <th>Description</th>
+            <th>Key Behaviour</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="method post">POST</span></td>
+            <td class="endpoint">/api/v1/users</td>
+            <td>Register a new user</td>
+            <td>Creates user + wallet atomically</td>
+          </tr>
+          <tr>
+            <td><span class="method get">GET</span></td>
+            <td class="endpoint">/api/v1/users/{id}</td>
+            <td>Fetch user details</td>
+            <td>Returns user + wallet summary</td>
+          </tr>
+          <tr>
+            <td><span class="method post">POST</span></td>
+            <td class="endpoint">/api/v1/merchants</td>
+            <td>Onboard a merchant</td>
+            <td>Creates merchant + wallet atomically</td>
+          </tr>
+          <tr>
+            <td><span class="method patch">PATCH</span></td>
+            <td class="endpoint">/api/v1/merchants/{id}/status</td>
+            <td>Activate / deactivate merchant</td>
+            <td>Inactive merchants cannot receive payments</td>
+          </tr>
+          <tr>
+            <td><span class="method get">GET</span></td>
+            <td class="endpoint">/api/v1/wallets/{id}</td>
+            <td>Fetch wallet details</td>
+            <td>Returns current balance</td>
+          </tr>
+          <tr>
+            <td><span class="method post">POST</span></td>
+            <td class="endpoint">/api/v1/wallets/{id}/topup</td>
+            <td>Add fake money to wallet</td>
+            <td>For testing only — simulates loading funds</td>
+          </tr>
+          <tr>
+            <td><span class="method post">POST</span></td>
+            <td class="endpoint">/api/v1/payments</td>
+            <td>Initiate a payment</td>
+            <td>Requires Idempotency-Key header. Full atomic flow.</td>
+          </tr>
+          <tr>
+            <td><span class="method get">GET</span></td>
+            <td class="endpoint">/api/v1/payments/{id}</td>
+            <td>Fetch payment status</td>
+            <td>Returns full payment record with status</td>
+          </tr>
+          <tr>
+            <td><span class="method post">POST</span></td>
+            <td class="endpoint">/api/v1/payments/{id}/refund</td>
+            <td>Refund a payment</td>
+            <td>Only for SUCCESS payments. Atomic reversal.</td>
+          </tr>
+          <tr>
+            <td><span class="method get">GET</span></td>
+            <td class="endpoint">/api/v1/ledger/{accountId}</td>
+            <td>View ledger for an account</td>
+            <td>Paginated. All entries for a wallet.</td>
+          </tr>
+          <tr>
+            <td><span class="method get">GET</span></td>
+            <td class="endpoint">/api/v1/ledger/reconcile</td>
+            <td>Run reconciliation check</td>
+            <td>Verifies SUM(debits) == SUM(credits) globally</td>
+          </tr>
+          <tr>
+            <td><span class="method get">GET</span></td>
+            <td class="endpoint">/api/v1/settlements</td>
+            <td>View settlement queue</td>
+            <td>Shows pending + settled records</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ── 9. IDEMPOTENCY ── -->
+  <section>
+    <div class="section-label">09 · Idempotency Strategy</div>
+    <h2>Preventing Duplicate Payments</h2>
+    <div class="two-col">
+      <div>
+        <h3>The Problem</h3>
+        <p style="color:var(--muted); font-size:13px; margin-bottom:16px;">
+          Client sends payment request. Network times out. Client doesn't know if the payment succeeded. Client retries. Without protection, money is deducted twice.
+        </p>
+        <h3>The Solution</h3>
+        <p style="color:var(--muted); font-size:13px;">
+          Client generates a UUID and sends it as the <code style="color:var(--accent)">Idempotency-Key</code> header.
+          System checks Redis before processing. If key exists → return cached response. If not → process and cache the result.
+        </p>
+      </div>
+      <div>
+        <pre><span class="cmt">// Redis key structure</span>
+<span class="key">key</span>:   <span class="str">"idempotency:{uuid}"</span>
+<span class="key">value</span>: <span class="str">PaymentResponse (JSON)</span>
+<span class="key">TTL</span>:   <span class="val">86400</span> <span class="cmt">// 24 hours</span>
+
+<span class="cmt">// Flow</span>
+<span class="key">if</span> Redis.exists(key):
+  <span class="key">return</span> Redis.get(key)  <span class="cmt">// cached</span>
+<span class="key">else</span>:
+  result = processPayment()
+  Redis.set(key, result, TTL)
+  <span class="key">return</span> result</pre>
+      </div>
+    </div>
+    <div style="margin-top: 16px; background: var(--surface); border: 1px solid rgba(0,229,160,0.2); border-radius: 6px; padding: 16px 20px; font-size: 13px; color: var(--muted);">
+      <strong style="color:var(--accent)">Edge case handled:</strong> What if two concurrent requests arrive with the same key before either is cached? The <code style="color:var(--text)">idempotency_key UNIQUE</code> constraint on the payments table acts as the final safety net — the DB will reject the second insert.
+    </div>
+  </section>
+
+  <!-- ── 10. SETTLEMENT ── -->
+  <section>
+    <div class="section-label">10 · Settlement Architecture</div>
+    <h2>Delayed Merchant Fund Release</h2>
+    <div class="flow">
+      <div class="flow-step">
+        <div class="flow-number">1</div>
+        <div class="flow-content">
+          <h4>Payment Succeeds</h4>
+          <p>On SUCCESS, a settlement record is created with status = PENDING and settle_at = now() + 1 day (T+1) or + 2 days (T+2).</p>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-number">2</div>
+        <div class="flow-content">
+          <h4>Scheduler Runs</h4>
+          <p>A Spring <code style="color:var(--accent)">@Scheduled</code> job runs every hour. It queries all PENDING settlements where settle_at &lt;= now().</p>
+          <div class="note">@Scheduled(cron = "0 0 * * * *") — runs at the top of every hour</div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-number">3</div>
+        <div class="flow-content">
+          <h4>Release Funds</h4>
+          <p>For each eligible settlement: credit merchant wallet, create ledger entry, update settlement status to SETTLED. Atomic per settlement record.</p>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:16px; background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:16px 20px; font-size:13px; color:var(--muted);">
+      <strong style="color:var(--accent4)">Note on wallet balance during settlement:</strong> For simplicity, the merchant wallet is credited immediately on payment success in this implementation. Settlement tracking exists as a record-keeping and simulation layer. In a real system, funds would be held in a platform escrow wallet and released only on settlement.
+    </div>
+  </section>
+
+  <!-- ── 11. FAILURE HANDLING ── -->
+  <section>
+    <div class="section-label">11 · Failure Handling</div>
+    <h2>What Happens When Things Go Wrong</h2>
+    <div class="card-grid">
+      <div class="card red">
+        <div class="card-title">Insufficient Balance</div>
+        <div class="card-desc">Validation step catches this before the transaction begins. HTTP 422 Unprocessable Entity returned. No DB writes occur.</div>
+      </div>
+      <div class="card red">
+        <div class="card-title">DB Transaction Failure</div>
+        <div class="card-desc">If any step within the @Transactional block throws, Spring rolls back the entire transaction. Wallet and ledger are untouched.</div>
+      </div>
+      <div class="card yellow">
+        <div class="card-title">Concurrent Payment (Same Wallet)</div>
+        <div class="card-desc">Pessimistic lock on the wallet row via SELECT FOR UPDATE. Second concurrent request waits. No double-spend possible.</div>
+      </div>
+      <div class="card yellow">
+        <div class="card-title">Duplicate Request</div>
+        <div class="card-desc">Idempotency key in Redis returns cached response. If Redis is down, the UNIQUE constraint on idempotency_key in PostgreSQL rejects the duplicate.</div>
+      </div>
+      <div class="card blue">
+        <div class="card-title">Inactive Merchant</div>
+        <div class="card-desc">Merchant status is checked before payment processing. HTTP 400 Bad Request if merchant is INACTIVE.</div>
+      </div>
+      <div class="card blue">
+        <div class="card-title">Invalid Wallet IDs</div>
+        <div class="card-desc">FK constraints in PostgreSQL ensure referenced wallets must exist. Application layer validates before DB write anyway.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 12. RECONCILIATION ── -->
+  <section>
+    <div class="section-label">12 · Reconciliation</div>
+    <h2>Verifying the Books Balance</h2>
+    <p style="color:var(--muted); margin-bottom:20px; font-size:13px; max-width:700px;">
+      Reconciliation answers one question: does the ledger balance? Every debit must have a matching credit. If the sum of all debits does not equal the sum of all credits, something went wrong.
+    </p>
+    <pre><span class="cmt">-- Reconciliation query (runs on GET /ledger/reconcile)</span>
+
+<span class="key">SELECT</span>
+  <span class="key">SUM</span>(<span class="key">CASE WHEN</span> entry_type = <span class="str">'DEBIT'</span>  <span class="key">THEN</span> amount <span class="key">ELSE</span> <span class="val">0</span> <span class="key">END</span>) <span class="key">AS</span> total_debits,
+  <span class="key">SUM</span>(<span class="key">CASE WHEN</span> entry_type = <span class="str">'CREDIT'</span> <span class="key">THEN</span> amount <span class="key">ELSE</span> <span class="val">0</span> <span class="key">END</span>) <span class="key">AS</span> total_credits,
+  <span class="key">SUM</span>(<span class="key">CASE WHEN</span> entry_type = <span class="str">'DEBIT'</span>  <span class="key">THEN</span> amount <span class="key">ELSE</span> -amount <span class="key">END</span>) <span class="key">AS</span> net_balance
+<span class="key">FROM</span> ledger_entries;
+
+<span class="cmt">-- Expected: total_debits == total_credits, net_balance == 0</span></pre>
+  </section>
+
+  <!-- ── 13. KEY CONCEPTS ── -->
+  <section>
+    <div class="section-label">13 · Key Interview Concepts</div>
+    <h2>What This Project Demonstrates</h2>
+    <div class="concept-grid">
+      <div class="concept-card">
+        <div class="concept-icon">🔒</div>
+        <div class="concept-title">Pessimistic Locking</div>
+        <div class="concept-desc">SELECT FOR UPDATE on wallet rows prevents race conditions during concurrent payments from the same source wallet.</div>
+      </div>
+      <div class="concept-card">
+        <div class="concept-icon">⚛️</div>
+        <div class="concept-title">ACID Transactions</div>
+        <div class="concept-desc">All financial writes wrapped in a single PostgreSQL transaction. Atomicity guaranteed — partial state is impossible.</div>
+      </div>
+      <div class="concept-card">
+        <div class="concept-icon">🔑</div>
+        <div class="concept-title">Idempotency</div>
+        <div class="concept-desc">Redis-backed idempotency keys with DB-level UNIQUE constraint as fallback. Safe retries are a first-class concern.</div>
+      </div>
+      <div class="concept-card">
+        <div class="concept-icon">📒</div>
+        <div class="concept-title">Double-Entry Accounting</div>
+        <div class="concept-desc">Every financial movement creates two ledger entries. The ledger is append-only and immutable. Source of truth for all balances.</div>
+      </div>
+      <div class="concept-card">
+        <div class="concept-icon">🏗️</div>
+        <div class="concept-title">Modular Monolith</div>
+        <div class="concept-desc">Clean package boundaries without the operational overhead of microservices. Easy to extract later if needed.</div>
+      </div>
+      <div class="concept-card">
+        <div class="concept-icon">⏰</div>
+        <div class="concept-title">Settlement Scheduling</div>
+        <div class="concept-desc">Demonstrates understanding of T+1/T+2 settlement cycles used in real payment networks and card rails.</div>
+      </div>
+      <div class="concept-card">
+        <div class="concept-icon">🔄</div>
+        <div class="concept-title">Reconciliation</div>
+        <div class="concept-desc">Ability to verify system integrity by summing ledger entries. A critical operation in any financial system.</div>
+      </div>
+      <div class="concept-card">
+        <div class="concept-icon">🛡️</div>
+        <div class="concept-title">Fail-Safe Design</div>
+        <div class="concept-desc">Multiple layers of protection: application validation → DB constraints → transaction rollback → idempotency cache.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 14. FOLDER STRUCTURE ── -->
+  <section>
+    <div class="section-label">14 · Project Structure</div>
+    <h2>Suggested Package Layout</h2>
+    <pre><span class="str">paycore/</span>
+├── <span class="str">src/main/java/com/paycore/</span>
+│   ├── <span class="key">user/</span>
+│   │   ├── UserController.java
+│   │   ├── UserService.java
+│   │   ├── UserRepository.java
+│   │   └── User.java  <span class="cmt">(entity)</span>
+│   ├── <span class="key">merchant/</span>
+│   │   ├── MerchantController.java
+│   │   ├── MerchantService.java
+│   │   └── Merchant.java
+│   ├── <span class="key">wallet/</span>
+│   │   ├── WalletController.java
+│   │   ├── WalletService.java
+│   │   └── Wallet.java
+│   ├── <span class="key">payment/</span>
+│   │   ├── PaymentController.java
+│   │   ├── PaymentService.java  <span class="cmt">(core logic lives here)</span>
+│   │   └── Payment.java
+│   ├── <span class="key">ledger/</span>
+│   │   ├── LedgerController.java
+│   │   ├── LedgerService.java
+│   │   └── LedgerEntry.java
+│   ├── <span class="key">settlement/</span>
+│   │   ├── SettlementScheduler.java  <span class="cmt">(@Scheduled)</span>
+│   │   ├── SettlementService.java
+│   │   └── Settlement.java
+│   ├── <span class="key">idempotency/</span>
+│   │   └── IdempotencyService.java  <span class="cmt">(Redis ops)</span>
+│   └── <span class="key">common/</span>
+│       ├── exception/  <span class="cmt">(global error handler)</span>
+│       └── config/     <span class="cmt">(Redis config, etc.)</span>
+├── <span class="str">src/main/resources/</span>
+│   └── application.yml
+└── <span class="str">docker-compose.yml</span>  <span class="cmt">(postgres + redis)</span></pre>
+  </section>
+
+</main>
+
+<footer>
+  PayCore · Portfolio Project · Kaushik · Backend Engineering
+</footer>
+
+</body>
+</html>
